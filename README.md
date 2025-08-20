@@ -90,22 +90,62 @@ Example:
 NEXT_PUBLIC_API_URL=https://your-new-backend-url.com
 ```
 
-## For deployment:
+## Deployment
+
+### Docker Deployment
+
+This project includes Docker configuration for both frontend and backend services:
+
+1. Build and run using Docker Compose:
    ```bash
-   npm run build
-   # or
-   yarn build
+   docker-compose up --build
    ```
 
-   AND
+2. Access the application:
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
 
+For more details, see the [Docker README](./DOCKER_README.md).
+
+### AWS Deployment
+
+This project includes Terraform configuration for deploying to AWS:
+
+1. Navigate to the infra directory:
    ```bash
-   npm run start
-   # or
-   yarn start
+   cd infra
    ```
 
-   The frontend will be available at `http://localhost:3000`
+2. Initialize Terraform:
+   ```bash
+   terraform init
+   ```
+
+3. Apply the configuration:
+   ```bash
+   terraform apply
+   ```
+
+For more details, see the [Infrastructure README](./infra/README.md).
+
+## CI/CD Workflows
+
+This project includes GitHub Actions workflows for continuous integration and deployment:
+
+1. **Test**: Runs tests for both frontend and backend on pull requests
+2. **Security Scan**: Scans Docker images and infrastructure code for vulnerabilities
+3. **Terraform Infrastructure Deployment**: Deploys AWS infrastructure using Terraform
+4. **Build and Deploy to ECR/ECS**: Builds Docker images, pushes to ECR, and updates ECS services
+
+### Required GitHub Secrets
+
+To use the GitHub Actions workflows, you need to set up the following secrets in your repository:
+
+- `AWS_ACCESS_KEY_ID`: Your AWS access key ID
+- `AWS_SECRET_ACCESS_KEY`: Your AWS secret access key
+- `AWS_REGION`: The AWS region where your resources are deployed (e.g., `us-east-1`)
+
+For more details, see the [GitHub Actions README](./.github/workflows/README.md).
 
 ## Testing the Integration
 
