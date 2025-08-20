@@ -12,32 +12,34 @@ resource "aws_vpc" "main" {
   )
 }
 
-# Public Subnet
+# Public Subnets
 resource "aws_subnet" "public" {
+  count                   = length(var.availability_zones)
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidr
-  availability_zone       = var.availability_zone
+  cidr_block              = var.public_subnet_cidrs[count.index]
+  availability_zone       = var.availability_zones[count.index]
   map_public_ip_on_launch = true
 
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.name_prefix}-public-subnet"
+      Name = "${local.name_prefix}-public-subnet-${count.index + 1}"
     }
   )
 }
 
-# Private Subnet
+# Private Subnets
 resource "aws_subnet" "private" {
+  count                   = length(var.availability_zones)
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.private_subnet_cidr
-  availability_zone       = var.availability_zone
+  cidr_block              = var.private_subnet_cidrs[count.index]
+  availability_zone       = var.availability_zones[count.index]
   map_public_ip_on_launch = false
 
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.name_prefix}-private-subnet"
+      Name = "${local.name_prefix}-private-subnet-${count.index + 1}"
     }
   )
 }
@@ -71,7 +73,7 @@ resource "aws_eip" "nat" {
 # NAT Gateway
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public.id
+  subnet_id     = aws_subnet.public[0].id
 
   tags = merge(
     local.common_tags,
@@ -117,14 +119,16 @@ resource "aws_route_table" "private" {
   )
 }
 
-# Associate Public Subnet with Public Route Table
+# Associate Public Subnets with Public Route Table
 resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
+  count          = length(var.availability_zones)
+  subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
 }
 
-# Associate Private Subnet with Private Route Table
+# Associate Private Subnets with Private Route Table
 resource "aws_route_table_association" "private" {
-  subnet_id      = aws_subnet.private.id
+  count          = length(var.availability_zones)
+  subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private.id
 }
