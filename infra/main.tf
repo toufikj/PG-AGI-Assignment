@@ -5,6 +5,14 @@ terraform {
       version = "~> 4.0"
     }
   }
+  
+  backend "s3" {
+    bucket = "terraform-20-25"
+    key    = "pg-agi/terraform.tfstate"
+    region = "ap-south-1"
+    encrypt = true
+    dynamodb_table = "terraform-locks"
+  }
 }
 
 provider "aws" {

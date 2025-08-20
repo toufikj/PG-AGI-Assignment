@@ -13,6 +13,12 @@ resource "aws_ecr_repository" "frontend" {
       Name = "${local.name_prefix}-frontend-ecr"
     }
   )
+  
+  lifecycle {
+    ignore_changes = [
+      name
+    ]
+  }
 }
 
 # ECR Repository for Backend
@@ -30,6 +36,12 @@ resource "aws_ecr_repository" "backend" {
       Name = "${local.name_prefix}-backend-ecr"
     }
   )
+  
+  lifecycle {
+    ignore_changes = [
+      name
+    ]
+  }
 }
 
 # ECR Lifecycle Policy for Frontend

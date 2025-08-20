@@ -21,11 +21,19 @@ This directory contains Terraform configuration files to deploy the frontend and
 
 ## Usage
 
-### Initialize Terraform
+### Initialize Terraform with Remote State
+
+This project uses a remote state stored in an S3 bucket. To initialize Terraform with the remote state configuration, run:
 
 ```bash
+# On Linux/Mac
 terraform init
+
+# On Windows
+.\init_remote_state.ps1
 ```
+
+The remote state is stored in the `terraform-20-25` S3 bucket with DynamoDB locking enabled.
 
 ### Plan the Infrastructure
 

@@ -31,6 +31,12 @@ resource "aws_iam_role" "ecs_task_execution_role" {
       }
     ]
   })
+  
+  lifecycle {
+    ignore_changes = [
+      name
+    ]
+  }
 
   tags = local.common_tags
 }

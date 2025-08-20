@@ -42,6 +42,13 @@ resource "aws_lb_target_group" "frontend" {
       Name = "${local.name_prefix}-frontend-tg"
     }
   )
+  
+  lifecycle {
+    create_before_destroy = false
+    ignore_changes = [
+      name
+    ]
+  }
 }
 
 # Target Group for Backend
@@ -70,6 +77,13 @@ resource "aws_lb_target_group" "backend" {
       Name = "${local.name_prefix}-backend-tg"
     }
   )
+  
+  lifecycle {
+    create_before_destroy = false
+    ignore_changes = [
+      name
+    ]
+  }
 }
 
 # Listener for Frontend (HTTP)
