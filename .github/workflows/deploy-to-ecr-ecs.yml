@@ -127,7 +127,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: front-task-definition.json
-          container-name: ${{ inputs.CONTAINER_NAME }}
+          container-name: ${{ inputs.FRONT-CONTAINER_NAME }}
           image: ${{ inputs.ecr-front }}:${{ github.run_number }}  
 
       - name: Render New ECS Task Definition
@@ -135,7 +135,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: back-task-definition.json
-          container-name: ${{ inputs.CONTAINER_NAME }}
+          container-name: ${{ inputs.BACK-CONTAINER_NAME }}
           image: ${{ inputs.ecr-back }}:${{ github.run_number }} 
           
       - name: FRONT Deploy Amazon ECS Task Definition
