@@ -12,22 +12,7 @@ on:
         description: 'The Amazon ECR repository URL'
         required: true
         type: string
-        default: "376572378342.dkr.ecr.ap-south-1.amazonaws.com/pg-agi-production-frontend"
-      aws-region:
-        description: 'The AWS region'
-        required: true
-        type: string
-        default: ap-south-1
-      front-dockerfile-path:
-        description: 'The path to the Dockerfile'
-        required: true
-        type: string
-        default: ./frontend/Dockerfile
-      back-dockerfile-path:
-        description: 'The path to the Dockerfile'
-        required: true
-        type: string
-        default: ./backend/Dockerfile    
+        default: "376572378342.dkr.ecr.ap-south-1.amazonaws.com/pg-agi-production-frontend"    
       ECS_CLUSTER_NAME:
         description: 'The Amazon ECS cluster name'
         required: true
@@ -86,7 +71,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ inputs.aws-region }}
+          aws-region: "ap-south-1"
 
       - name: Log in to Amazon ECR
         id: ecr-login
@@ -96,8 +81,8 @@ jobs:
         id: front-build-and-push
         uses: docker/build-push-action@v5.1.0
         with:
-          context: ${{ inputs.front-dockerfile-path }}
-          file: ${{ inputs.front-dockerfile-path }}
+          context: ./frontend
+          file: ./frontend/Dockerfile
           push: true
           tags: |
             ${{ steps.ecr-login.outputs.registry }}/${{ inputs.ecr-front }}:${{ github.run_number }}
@@ -106,8 +91,8 @@ jobs:
         id: back-build-and-push
         uses: docker/build-push-action@v5.1.0
         with:
-          context: ${{ inputs.back-dockerfile-path }}
-          file: ${{ inputs.back-dockerfile-path }}
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
           tags: |
             ${{ steps.ecr-login.outputs.registry }}/${{ inputs.ecr-back }}:${{ github.run_number }}
