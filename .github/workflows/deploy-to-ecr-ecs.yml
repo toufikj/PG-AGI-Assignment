@@ -85,7 +85,7 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ steps.ecr-login.outputs.registry }}/${{ inputs.ecr-front }}:${{ github.run_number }}
+            ${{ inputs.ecr-front }}:${{ github.run_number }}
 
       - name: Back Build and push Docker image
         id: back-build-and-push
@@ -95,7 +95,7 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ steps.ecr-login.outputs.registry }}/${{ inputs.ecr-back }}:${{ github.run_number }}
+            ${{ inputs.ecr-back }}:${{ github.run_number }}
 
       - name: Get the Current ECS Task Definition
         id: front-get-task-def
