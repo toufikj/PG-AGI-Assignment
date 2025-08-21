@@ -1,110 +1,155 @@
-name: Build and Deploy to ECR/ECS
+name: Build and Push Docker Image to ECR
 
 on:
   workflow_dispatch:
     inputs:
-      deploy_frontend:
-        description: 'Deploy frontend'
+      ecr-back:
+        description: 'The Amazon ECR registry URL'
         required: true
-        type: boolean
-      deploy_backend:
-        description: 'Deploy backend'
+        type: string
+        default: "376572378342.dkr.ecr.ap-south-1.amazonaws.com/pg-agi-production-backend"
+      ecr-front:
+        description: 'The Amazon ECR repository URL'
         required: true
-        type: boolean
+        type: string
+        default: "376572378342.dkr.ecr.ap-south-1.amazonaws.com/pg-agi-production-frontend"
+      aws-region:
+        description: 'The AWS region'
+        required: true
+        type: string
+        default: ap-south-1
+      front-dockerfile-path:
+        description: 'The path to the Dockerfile'
+        required: true
+        type: string
+        default: ./frontend/Dockerfile
+      back-dockerfile-path:
+        description: 'The path to the Dockerfile'
+        required: true
+        type: string
+        default: ./backend/Dockerfile    
+      ECS_CLUSTER_NAME:
+        description: 'The Amazon ECS cluster name'
+        required: true
+        type: string
+        default: "pg-agi-production-cluster"
+
+      FRONT-ECS_TASK_DEFINITION:
+        description: 'The Amazon ECS task def name'
+        required: true
+        type: string
+        default: "pg-agi-production-frontend"
+      BACK-ECS_TASK_DEFINITION:
+        description: 'The Amazon ECS task def name'
+        required: true
+        type: string  
+        default: "pg-agi-production-backend"
+
+      FRONT-ECS_SERVICE_NAME:
+        description: 'The Amazon ECS service name'
+        required: true
+        type: string
+        default: "pg-agi-production-frontend-service"
+      BACK-ECS_SERVICE_NAME:
+        description: 'The Amazon ECS service name'
+        required: true
+        type: string
+        default: "pg-agi-production-backend-service"
+
+      FRONT-CONTAINER_NAME:
+        description: 'The Amazon ECS container name'
+        required: true
+        type: string  
+        default: "pg-agi-production-frontend"
+      BACK-CONTAINER_NAME:
+        description: 'The Amazon ECS container name'
+        required: true
+        type: string  
+        default: "pg-agi-production-backend"
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ inputs.aws-region }}
 
-      - name: Get Terraform outputs
-        id: terraform-outputs
-        run: |
-          cd infra
-          # Install Terraform
-          wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-          sudo apt update && sudo apt install terraform
-          
-          # Initialize Terraform
-          terraform init
-          
-          # Get outputs
-          echo "FRONTEND_REPO=$(terraform output -raw frontend_repository_url)" >> $GITHUB_ENV
-          echo "BACKEND_REPO=$(terraform output -raw backend_repository_url)" >> $GITHUB_ENV
-          echo "ECS_CLUSTER=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_ENV
-          echo "FRONTEND_SERVICE=$(terraform output -raw frontend_service_name)" >> $GITHUB_ENV
-          echo "BACKEND_SERVICE=$(terraform output -raw backend_service_name)" >> $GITHUB_ENV
-          echo "AWS_REGION=$(terraform output -raw aws_region || echo "${{ secrets.AWS_REGION }}")" >> $GITHUB_ENV
-
-      - name: Login to Amazon ECR
-        id: login-ecr
+      - name: Log in to Amazon ECR
+        id: ecr-login
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push frontend image to Amazon ECR
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_frontend == 'true' }}
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.FRONTEND_REPO }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          cd frontend
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "FRONTEND_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+      - name: Front Build and push Docker image
+        id: front-build-and-push
+        uses: docker/build-push-action@v5.1.0
+        with:
+          context: ${{ inputs.front-dockerfile-path }}
+          file: ${{ inputs.front-dockerfile-path }}
+          push: true
+          tags: |
+            ${{ steps.ecr-login.outputs.registry }}/${{ inputs.ecr-front }}:${{ github.run_number }}
 
-      - name: Build, tag, and push backend image to Amazon ECR
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_backend == 'true' }}
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.BACKEND_REPO }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          cd backend
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "BACKEND_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+      - name: Back Build and push Docker image
+        id: back-build-and-push
+        uses: docker/build-push-action@v5.1.0
+        with:
+          context: ${{ inputs.back-dockerfile-path }}
+          file: ${{ inputs.back-dockerfile-path }}
+          push: true
+          tags: |
+            ${{ steps.ecr-login.outputs.registry }}/${{ inputs.ecr-back }}:${{ github.run_number }}
 
-      - name: Update frontend ECS service
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_frontend == 'true' }}
+      - name: Get the Current ECS Task Definition
+        id: front-get-task-def
         run: |
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} \
-                               --service ${{ env.FRONTEND_SERVICE }} \
-                               --force-new-deployment \
-                               --region ${{ env.AWS_REGION }}
-
-      - name: Update backend ECS service
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_backend == 'true' }}
+          aws ecs describe-task-definition --task-definition ${{ inputs.FRONT-ECS_TASK_DEFINITION }} --query taskDefinition > front-task-definition.json      
+      
+      - name: Get the Current ECS Task Definition
+        id: back-get-task-def
         run: |
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} \
-                               --service ${{ env.BACKEND_SERVICE }} \
-                               --force-new-deployment \
-                               --region ${{ env.AWS_REGION }}
-
-      - name: Wait for services to be stable
-        run: |
-          if [[ "${{ github.event_name }}" != "workflow_dispatch" || "${{ github.event.inputs.deploy_frontend }}" == "true" ]]; then
-            aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.FRONTEND_SERVICE }} --region ${{ env.AWS_REGION }}
-          fi
+          aws ecs describe-task-definition --task-definition ${{ inputs.BACK-ECS_TASK_DEFINITION }} --query taskDefinition > back-task-definition.json    
           
-          if [[ "${{ github.event_name }}" != "workflow_dispatch" || "${{ github.event.inputs.deploy_backend }}" == "true" ]]; then
-            aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.BACKEND_SERVICE }} --region ${{ env.AWS_REGION }}
-          fi
+      - name: Render New ECS Task Definition
+        id: front-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: front-task-definition.json
+          container-name: ${{ inputs.FRONT-CONTAINER_NAME }}
+          image: ${{ inputs.ecr-front }}:${{ github.run_number }}  
+
+      - name: Render New ECS Task Definition
+        id: back-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: back-task-definition.json
+          container-name: ${{ inputs.BACK-CONTAINER_NAME }}
+          image: ${{ inputs.ecr-back }}:${{ github.run_number }} 
+          
+      - name: FRONT Deploy Amazon ECS Task Definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.front-task-def.outputs.task-definition }}
+          service: ${{ inputs.FRONT-ECS_SERVICE_NAME }}
+          cluster: ${{ inputs.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true    
+
+      - name: BACK Deploy Amazon ECS Task Definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.back-task-def.outputs.task-definition }}
+          service: ${{ inputs.BACK-ECS_SERVICE_NAME }}
+          cluster: ${{ inputs.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true    
