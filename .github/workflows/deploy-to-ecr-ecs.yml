@@ -100,12 +100,14 @@ jobs:
       - name: Get the Current ECS Task Definition
         id: front-get-task-def
         run: |
-          aws ecs describe-task-definition --task-definition ${{ inputs.FRONT-ECS_TASK_DEFINITION }} --query taskDefinition > front-task-definition.json      
+          aws ecs describe-task-definition --task-definition ${{ inputs.FRONT-ECS_TASK_DEFINITION }} --query taskDefinition > front-task-definition.json
+          cat front-task-definition.json      
       
       - name: Get the Current ECS Task Definition
         id: back-get-task-def
         run: |
-          aws ecs describe-task-definition --task-definition ${{ inputs.BACK-ECS_TASK_DEFINITION }} --query taskDefinition > back-task-definition.json    
+          aws ecs describe-task-definition --task-definition ${{ inputs.BACK-ECS_TASK_DEFINITION }} --query taskDefinition > back-task-definition.json 
+          cat back-task-definition.json   
           
       - name: Render New ECS Task Definition
         id: front-task-def
@@ -130,6 +132,7 @@ jobs:
           service: ${{ inputs.FRONT-ECS_SERVICE_NAME }}
           cluster: ${{ inputs.ECS_CLUSTER_NAME }}
           wait-for-service-stability: true    
+          update-service-desired-count: true
 
       - name: BACK Deploy Amazon ECS Task Definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
