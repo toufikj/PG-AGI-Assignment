@@ -64,7 +64,6 @@ resource "aws_ecs_task_definition" "frontend" {
       portMappings = [
         {
           containerPort = var.frontend_container_port
-          hostPort      = var.frontend_container_port
           protocol      = "tcp"
         }
       ]
@@ -111,7 +110,6 @@ resource "aws_ecs_task_definition" "backend" {
       portMappings = [
         {
           containerPort = var.backend_container_port
-          hostPort      = var.backend_container_port
           protocol      = "tcp"
         }
       ]
