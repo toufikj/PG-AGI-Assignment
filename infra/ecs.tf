@@ -38,6 +38,27 @@ resource "aws_iam_role" "ecs_task_execution_role" {
     ]
   }
 
+  # Inline policy for CloudWatch Logs
+  inline_policy {
+    name = "CloudWatchLogsPolicy"
+    policy = jsonencode({
+      Version = "2012-10-17",
+      Statement = [
+        {
+          Effect = "Allow",
+          Action = [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          Resource = [
+            "arn:aws:logs:ap-south-1:376572378342:log-group:/ecs/*"
+          ]
+        }
+      ]
+    })
+  }
+
   tags = local.common_tags
 }
 

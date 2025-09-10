@@ -86,6 +86,8 @@ jobs:
           push: true
           tags: |
             ${{ inputs.ecr-front }}:${{ github.run_number }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
       - name: Back Build and push Docker image
         id: back-build-and-push

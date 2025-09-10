@@ -11,9 +11,10 @@ RUN npm ci
 # Copy the rest of the application
 COPY . .
 
-# Set environment variables
-# ARG NEXT_PUBLIC_API_URL=http://localhost:8000
-# ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+# Set build argument and write to .env.local for Next.js
+ARG NEXT_PUBLIC_API_URL
+RUN echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" > .env.local
 
 # Build the application
 RUN npm run build
