@@ -2,55 +2,17 @@ name: Build and Push Docker Image to ECR
 
 on:
   workflow_dispatch:
-    inputs:
-      ecr-back:
-        description: 'The Amazon ECR registry URL'
-        required: true
-        type: string
-        default: "376572378342.dkr.ecr.ap-south-1.amazonaws.com/pg-agi-production-backend"
-      ecr-front:
-        description: 'The Amazon ECR repository URL'
-        required: true
-        type: string
-        default: "376572378342.dkr.ecr.ap-south-1.amazonaws.com/pg-agi-production-frontend"    
-      ECS_CLUSTER_NAME:
-        description: 'The Amazon ECS cluster name'
-        required: true
-        type: string
-        default: "pg-agi-production-cluster"
 
-      FRONT-ECS_TASK_DEFINITION:
-        description: 'The Amazon ECS task def name'
-        required: true
-        type: string
-        default: "pg-agi-production-frontend"
-      BACK-ECS_TASK_DEFINITION:
-        description: 'The Amazon ECS task def name'
-        required: true
-        type: string  
-        default: "pg-agi-production-backend"
-
-      FRONT-ECS_SERVICE_NAME:
-        description: 'The Amazon ECS service name'
-        required: true
-        type: string
-        default: "pg-agi-production-frontend-service"
-      BACK-ECS_SERVICE_NAME:
-        description: 'The Amazon ECS service name'
-        required: true
-        type: string
-        default: "pg-agi-production-backend-service"
-
-      FRONT-CONTAINER_NAME:
-        description: 'The Amazon ECS container name'
-        required: true
-        type: string  
-        default: "pg-agi-production-frontend"
-      BACK-CONTAINER_NAME:
-        description: 'The Amazon ECS container name'
-        required: true
-        type: string  
-        default: "pg-agi-production-backend"
+env:
+  ECR_BACK: "376572378342.dkr.ecr.ap-south-1.amazonaws.com/pg-agi-production-backend"
+  ECR_FRONT: "376572378342.dkr.ecr.ap-south-1.amazonaws.com/pg-agi-production-frontend"
+  ECS_CLUSTER_NAME: "pg-agi-production-cluster"
+  FRONT_ECS_TASK_DEFINITION: "pg-agi-production-frontend"
+  BACK_ECS_TASK_DEFINITION: "pg-agi-production-backend"
+  FRONT_ECS_SERVICE_NAME: "pg-agi-production-frontend-service"
+  BACK_ECS_SERVICE_NAME: "pg-agi-production-backend-service"
+  FRONT_CONTAINER_NAME: "pg-agi-production-frontend"
+  BACK_CONTAINER_NAME: "pg-agi-production-backend"
 
 jobs:
   build:
@@ -85,7 +47,7 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ inputs.ecr-front }}:${{ github.run_number }}
+            ${{ env.ecr-front }}:${{ github.run_number }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
@@ -97,18 +59,18 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ inputs.ecr-back }}:${{ github.run_number }}
+            ${{ env.ecr-back }}:${{ github.run_number }}
 
       - name: Get the Current ECS Task Definition
         id: front-get-task-def
         run: |
-          aws ecs describe-task-definition --task-definition ${{ inputs.FRONT-ECS_TASK_DEFINITION }} --query taskDefinition > front-task-definition.json
+          aws ecs describe-task-definition --task-definition ${{ env.FRONT-ECS_TASK_DEFINITION }} --query taskDefinition > front-task-definition.json
           cat front-task-definition.json      
       
       - name: Get the Current ECS Task Definition
         id: back-get-task-def
         run: |
-          aws ecs describe-task-definition --task-definition ${{ inputs.BACK-ECS_TASK_DEFINITION }} --query taskDefinition > back-task-definition.json 
+          aws ecs describe-task-definition --task-definition ${{ env.BACK-ECS_TASK_DEFINITION }} --query taskDefinition > back-task-definition.json 
           cat back-task-definition.json   
           
       - name: Render New ECS Task Definition
@@ -116,30 +78,29 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: front-task-definition.json
-          container-name: ${{ inputs.FRONT-CONTAINER_NAME }}
-          image: ${{ inputs.ecr-front }}:${{ github.run_number }}  
+          container-name: ${{ env.FRONT-CONTAINER_NAME }}
+          image: ${{ env.ecr-front }}:${{ github.run_number }}  
 
       - name: Render New ECS Task Definition
         id: back-task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: back-task-definition.json
-          container-name: ${{ inputs.BACK-CONTAINER_NAME }}
-          image: ${{ inputs.ecr-back }}:${{ github.run_number }} 
+          container-name: ${{ env.BACK-CONTAINER_NAME }}
+          image: ${{ env.ecr-back }}:${{ github.run_number }} 
           
       - name: FRONT Deploy Amazon ECS Task Definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.front-task-def.outputs.task-definition }}
-          service: ${{ inputs.FRONT-ECS_SERVICE_NAME }}
-          cluster: ${{ inputs.ECS_CLUSTER_NAME }}
-          wait-for-service-stability: true    
-          update-service-desired-count: true
+          service: ${{ env.FRONT-ECS_SERVICE_NAME }}
+          cluster: ${{ env.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true
 
       - name: BACK Deploy Amazon ECS Task Definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.back-task-def.outputs.task-definition }}
-          service: ${{ inputs.BACK-ECS_SERVICE_NAME }}
-          cluster: ${{ inputs.ECS_CLUSTER_NAME }}
+          service: ${{ env.BACK-ECS_SERVICE_NAME }}
+          cluster: ${{ env.ECS_CLUSTER_NAME }}
           wait-for-service-stability: true    
