@@ -47,7 +47,7 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ env.ecr-front }}:${{ github.run_number }}
+            ${{ env.ECR_FRONT }}:${{ github.run_number }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
@@ -59,18 +59,18 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ env.ecr-back }}:${{ github.run_number }}
+            ${{ env.ECR_BACK }}:${{ github.run_number }}
 
       - name: Get the Current ECS Task Definition
         id: front-get-task-def
         run: |
-          aws ecs describe-task-definition --task-definition ${{ env.FRONT-ECS_TASK_DEFINITION }} --query taskDefinition > front-task-definition.json
+          aws ecs describe-task-definition --task-definition ${{ env.FRONT_ECS_TASK_DEFINITION }} --query taskDefinition > front-task-definition.json
           cat front-task-definition.json      
       
       - name: Get the Current ECS Task Definition
         id: back-get-task-def
         run: |
-          aws ecs describe-task-definition --task-definition ${{ env.BACK-ECS_TASK_DEFINITION }} --query taskDefinition > back-task-definition.json 
+          aws ecs describe-task-definition --task-definition ${{ env.BACK_ECS_TASK_DEFINITION }} --query taskDefinition > back-task-definition.json 
           cat back-task-definition.json   
           
       - name: Render New ECS Task Definition
@@ -78,22 +78,22 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: front-task-definition.json
-          container-name: ${{ env.FRONT-CONTAINER_NAME }}
-          image: ${{ env.ecr-front }}:${{ github.run_number }}  
+          container-name: ${{ env.FRONT_CONTAINER_NAME }}
+          image: ${{ env.ECR_FRONT }}:${{ github.run_number }}  
 
       - name: Render New ECS Task Definition
         id: back-task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: back-task-definition.json
-          container-name: ${{ env.BACK-CONTAINER_NAME }}
-          image: ${{ env.ecr-back }}:${{ github.run_number }} 
+          container-name: ${{ env.BACK_CONTAINER_NAME }}
+          image: ${{ env.ECR_BACK }}:${{ github.run_number }} 
           
       - name: FRONT Deploy Amazon ECS Task Definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.front-task-def.outputs.task-definition }}
-          service: ${{ env.FRONT-ECS_SERVICE_NAME }}
+          service: ${{ env.FRONT_ECS_SERVICE_NAME }}
           cluster: ${{ env.ECS_CLUSTER_NAME }}
           wait-for-service-stability: true
 
@@ -101,6 +101,6 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.back-task-def.outputs.task-definition }}
-          service: ${{ env.BACK-ECS_SERVICE_NAME }}
+          service: ${{ env.BACK_ECS_SERVICE_NAME }}
           cluster: ${{ env.ECS_CLUSTER_NAME }}
           wait-for-service-stability: true    
