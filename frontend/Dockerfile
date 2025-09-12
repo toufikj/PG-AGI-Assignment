@@ -31,4 +31,4 @@ COPY --from=builder /app/.env.local ./.env.local
 COPY --from=prod-deps /app/node_modules ./node_modules
 
 EXPOSE 3000
-CMD [".nodejs/bin/node", "node_modules/next/dist/bin/next", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start"]
